@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import AdminNav, { AdminNavFallback } from "@/components/admin/AdminNav";
+import { AdminNavFallback } from "@/components/admin/AdminNav";
+import AdminNavigation from "@/components/admin/AdminNavigation";
+import SidebarUser from "@/components/admin/SidebarUser";
 import FailureToggle from "@/components/FailureToggle";
 
 export const metadata: Metadata = {
@@ -19,13 +21,20 @@ export default function AdminLayout({
       <aside className="flex w-56 shrink-0 flex-col bg-ink text-white">
         <Link href="/admin" className="px-6 py-6">
           <span className="block text-xl font-black">Padre Gino&apos;s</span>
-          <span className="text-xs font-medium text-white/60">Dashboard staf</span>
+          <span className="text-xs font-medium text-white/60">
+            Dashboard staf
+          </span>
         </Link>
-        {/* usePathname() is runtime data on dynamic routes like /admin/products/[id] */}
+        {/* The user (cookie) and usePathname() are both request data */}
         <Suspense fallback={<AdminNavFallback />}>
-          <AdminNav />
+          <AdminNavigation />
         </Suspense>
-        <div className="mt-auto flex flex-col gap-3 px-6 py-5 text-sm text-white/70">
+        <div className="mt-auto">
+          <Suspense fallback={null}>
+            <SidebarUser />
+          </Suspense>
+        </div>
+        <div className="flex flex-col gap-3 px-6 py-5 text-sm text-white/70">
           <FailureToggle />
           <Link href="/" className="hover:text-white">
             ← Ke toko

@@ -24,7 +24,9 @@ export default function AdminHome() {
         </WidgetErrorBoundary>
 
         {/* Cached: the slow all-time aggregate is computed once, not per visit */}
-        <TopPizzasWidget />
+        <Suspense fallback={<WidgetSkeleton title="Terlaris sepanjang masa" />}>
+          <TopPizzasWidget />
+        </Suspense>
       </div>
     </section>
   );
