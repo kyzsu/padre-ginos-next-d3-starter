@@ -244,3 +244,86 @@ export async function getSalesBySize(
     [id],
   );
 }
+
+// --- Day 4: analytics, trend, order extras ---------------------------------
+
+export interface DailySale {
+  date: string;
+  pizzaId: string;
+  name: string;
+  category: string;
+  quantity: number;
+  revenue: number;
+}
+
+/** Every pizza type, every day: ~11k rows. The analytics page filters them. */
+export async function getDailySales(): Promise<DailySale[]> {
+  await requirePermission("admin:view");
+  await simulateLatency("read");
+  return all<DailySale>(
+    `SELECT o.date, t.pizza_type_id AS pizzaId, t.name, t.category,
+            SUM(d.quantity) AS quantity,
+            ROUND(SUM(d.quantity * p.price), 2) AS revenue
+     FROM orders o
+     JOIN order_details d ON d.order_id = o.order_id
+     JOIN pizzas p ON p.pizza_id = d.pizza_id
+     JOIN pizza_types t ON t.pizza_type_id = p.pizza_type_id
+     GROUP BY o.date, t.pizza_type_id
+     ORDER BY o.date DESC, t.name`,
+  );
+}
+
+/** Revenue per day for the last 30 days in the data. */
+export async function getSalesTrend(): Promise<
+  { date: string; revenue: number; orders: number }[]
+> {
+  await requirePermission("admin:view");
+  await simulateLatency("read");
+  return all(
+    `SELECT o.date, ROUND(SUM(d.quantity * p.price), 2) AS revenue,
+            COUNT(DISTINCT o.order_id) AS orders
+     FROM orders o
+     JOIN order_details d ON d.order_id = o.order_id
+     JOIN pizzas p ON p.pizza_id = d.pizza_id
+     WHERE o.date > date((SELECT MAX(date) FROM orders), '-30 days')
+     GROUP BY o.date ORDER BY o.date`,
+  );
+}
+
+/** How many orders were placed on the same day. */
+export async function getDayOrderCount(date: string): Promise<number> {
+  await requirePermission("admin:view");
+  await simulateLatency("read");
+  const row = await get<{ n: number }>(
+    "SELECT COUNT(*) AS n FROM orders WHERE date = ?",
+    [date],
+  );
+  return row?.n ?? 0;
+}
+
+/** How many times this pizza (type) was ordered on that day. */
+export async function getPizzaSoldOnDay(
+  pizzaId: string,
+  date: string,
+): Promise<number> {
+  await requirePermission("admin:view");
+  await simulateLatency("read");
+  const row = await get<{ n: number }>(
+    `SELECT COALESCE(SUM(d.quantity), 0) AS n
+     FROM order_details d
+     JOIN orders o ON o.order_id = d.order_id
+     JOIN pizzas p ON p.pizza_id = d.pizza_id
+     WHERE p.pizza_type_id = ? AND o.date = ?`,
+    [pizzaId, date],
+  );
+  return row?.n ?? 0;
+}
+
+/** Live counter for the sidebar: orders still waiting on the latest day. */
+export async function getPendingCount(): Promise<number> {
+  await requirePermission("admin:view");
+  const row = await get<{ n: number }>(
+    "SELECT COUNT(*) AS n FROM orders WHERE status = 'pending'",
+  );
+  return row?.n ?? 0;
+}

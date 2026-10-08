@@ -19,6 +19,13 @@ export function isDevLoginEnabled(): boolean {
   return process.env.AUTH_DEV_LOGIN === "1";
 }
 
+// For pages and actions that only need "signed in", whatever the role
+export async function requireUser(): Promise<User> {
+  const user = await getCurrentUser();
+  if (!user) unauthorized();
+  return user;
+}
+
 // The guard every protected read and every protected Server Action calls.
 // Not signed in → 401 (unauthorized.tsx). Signed in, wrong role → 403 (forbidden.tsx).
 export async function requirePermission(permission: Permission): Promise<User> {

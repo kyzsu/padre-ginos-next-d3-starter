@@ -2,7 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import StatusActions from "@/components/admin/StatusActions";
 import StatusBadge from "@/components/admin/StatusBadge";
-import { getOrder } from "@/lib/admin-data";
+import {
+  getDayOrderCount,
+  getOrder,
+  getPizzaSoldOnDay,
+} from "@/lib/admin-data";
 import { getCurrentUser } from "@/lib/auth";
 import { formatPrice } from "@/lib/format";
 import { can } from "@/lib/permissions";
@@ -18,6 +22,13 @@ export default async function OrderDetailPage({
   if (!order) notFound();
   const user = await getCurrentUser();
 
+  // Context for staff: how busy was that day, how popular is each pizza
+  const dayOrderCount = await getDayOrderCount(order.date);
+  const soldThatDay: number[] = [];
+  for (const line of order.lines) {
+    soldThatDay.push(await getPizzaSoldOnDay(line.pizzaId, order.date));
+  }
+
   return (
     <section className="max-w-3xl">
       <Link href="/admin/orders" className="text-sm text-brand hover:underline">
@@ -26,6 +37,9 @@ export default async function OrderDetailPage({
       <h1 className="mt-4 text-3xl font-black">Order #{order.id}</h1>
       <p className="mt-1 flex items-center gap-3 text-ink/70">
         {order.date} {order.time}
+        <span className="text-sm" data-testid="day-order-count">
+          · {dayOrderCount} order hari itu
+        </span>
         <span data-testid="order-status">
           <StatusBadge status={order.status} />
         </span>
@@ -42,6 +56,7 @@ export default async function OrderDetailPage({
             <th className="px-4 py-3">Ukuran</th>
             <th className="px-4 py-3 text-right">Qty</th>
             <th className="px-4 py-3 text-right">Harga</th>
+            <th className="px-4 py-3 text-right">Terjual hari itu</th>
           </tr>
         </thead>
         <tbody>
@@ -63,6 +78,9 @@ export default async function OrderDetailPage({
               <td className="px-4 py-2 text-right">{line.quantity}</td>
               <td className="px-4 py-2 text-right">
                 {formatPrice(line.price)}
+              </td>
+              <td className="px-4 py-2 text-right" data-testid="sold-that-day">
+                {soldThatDay[i]}
               </td>
             </tr>
           ))}

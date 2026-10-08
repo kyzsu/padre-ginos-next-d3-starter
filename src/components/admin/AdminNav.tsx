@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/products", label: "Produk", adminOnly: true },
   { href: "/admin/orders", label: "Order" },
+  { href: "/admin/analytics", label: "Analitik" },
 ];
 
 function NavLinks({
